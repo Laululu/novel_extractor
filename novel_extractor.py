@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 class NovelExtractor:
     def __init__(self, root):
         self.root = root
-        self.root.title("小说网页内容提取工具V1.00")
+        self.root.title("小说网页内容提取工具V1.10")
         self.root.geometry("700x800")
         self.root.resizable(True, True)
         
@@ -72,11 +72,11 @@ class NovelExtractor:
         self.url_input_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(self.url_input_frame, text="网页开始地址:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.start_url = ttk.Entry(self.url_input_frame, width=70)
+        self.start_url = ttk.Entry(self.url_input_frame, width=75)
         self.start_url.grid(row=0, column=1, sticky=tk.W, pady=5)
         
         ttk.Label(self.url_input_frame, text="网页结束地址:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        self.end_url = ttk.Entry(self.url_input_frame, width=70)
+        self.end_url = ttk.Entry(self.url_input_frame, width=75)
         self.end_url.grid(row=1, column=1, sticky=tk.W, pady=5)
         
         # 批量网址输入框（初始隐藏）
@@ -112,25 +112,39 @@ class NovelExtractor:
         self.delete_temp_check = ttk.Checkbutton(self.output_frame, text="完成后删除临时文件", variable=self.delete_temp_var)
         self.delete_temp_check.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=5)
         
+        # 创建一个框架来容纳多线程下载、测试下载量和备份文件数选项（放在同一行）
+        self.settings_frame = ttk.Frame(self.output_frame)
+        self.settings_frame.grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=5)
+        
         # 添加线程数选择
-        ttk.Label(self.output_frame, text="线程数:").grid(row=2, column=0, sticky=tk.W, pady=5)
-        self.thread_count_frame = ttk.Frame(self.output_frame)
-        self.thread_count_frame.grid(row=2, column=1, sticky=tk.W, pady=5)
+        ttk.Label(self.settings_frame, text="多线程下载:").pack(side=tk.LEFT, padx=(0, 5))
+        self.thread_count_frame = ttk.Frame(self.settings_frame)
+        self.thread_count_frame.pack(side=tk.LEFT, padx=(0, 15))
         
         self.thread_count_var = tk.IntVar(value=3)
         self.thread_count_spinbox = ttk.Spinbox(self.thread_count_frame, from_=1, to=10, width=5, textvariable=self.thread_count_var)
         self.thread_count_spinbox.pack(side=tk.LEFT)
-        ttk.Label(self.thread_count_frame, text="(1-10，建议不超过5)").pack(side=tk.LEFT, padx=5)
+        ttk.Label(self.thread_count_frame, text="(建议不超过5)").pack(side=tk.LEFT, padx=5)
         
-        # 添加下载测试文件个数选择
-        ttk.Label(self.output_frame, text="下载测试文件个数:").grid(row=3, column=0, sticky=tk.W, pady=5)
-        self.test_count_frame = ttk.Frame(self.output_frame)
-        self.test_count_frame.grid(row=3, column=1, sticky=tk.W, pady=5)
+        # 添加下载测试文件数量选择
+        ttk.Label(self.settings_frame, text="测试下载量:").pack(side=tk.LEFT, padx=(0, 5))
+        self.test_count_frame = ttk.Frame(self.settings_frame)
+        self.test_count_frame.pack(side=tk.LEFT, padx=(0, 15))
         
         self.test_count_var = tk.IntVar(value=0)
         self.test_count_spinbox = ttk.Spinbox(self.test_count_frame, from_=0, to=1000, width=5, textvariable=self.test_count_var)
         self.test_count_spinbox.pack(side=tk.LEFT)
-        ttk.Label(self.test_count_frame, text="(0表示下载全部，其他数字表示限制下载数量)").pack(side=tk.LEFT, padx=5)
+        ttk.Label(self.test_count_frame, text="(0下载全部)").pack(side=tk.LEFT, padx=5)
+        
+        # 添加备份次数选择
+        ttk.Label(self.settings_frame, text="备份文件数:").pack(side=tk.LEFT, padx=(0, 5))
+        self.backup_count_frame = ttk.Frame(self.settings_frame)
+        self.backup_count_frame.pack(side=tk.LEFT)
+        
+        self.backup_count_var = tk.IntVar(value=2)
+        self.backup_count_spinbox = ttk.Spinbox(self.backup_count_frame, from_=0, to=10, width=5, textvariable=self.backup_count_var)
+        self.backup_count_spinbox.pack(side=tk.LEFT)
+        ttk.Label(self.backup_count_frame, text="(0不备份)").pack(side=tk.LEFT, padx=5)
         
         # 添加自定义规则区域
         self.filter_frame = ttk.LabelFrame(self.main_frame, text="自定义规则", padding="10")
@@ -148,6 +162,11 @@ class NovelExtractor:
         # 创建一个框架来容纳三个选项，使它们在同一行
         self.options_frame = ttk.Frame(self.filter_frame)
         self.options_frame.pack(fill=tk.X, pady=5)
+        
+        # 添加段落缩进选项
+        self.paragraph_indent_var = tk.BooleanVar(value=True)
+        self.paragraph_indent_check = ttk.Checkbutton(self.options_frame, text="段落缩进", variable=self.paragraph_indent_var)
+        self.paragraph_indent_check.pack(side=tk.LEFT, padx=10)
         
         # 添加删除行末数字选项
         self.remove_end_numbers_var = tk.BooleanVar(value=True)
@@ -189,6 +208,10 @@ class NovelExtractor:
         self.import_rules_btn = ttk.Button(self.rules_btn_frame, text="导入规则", command=self.import_rules)
         self.import_rules_btn.pack(side=tk.LEFT, padx=5)
         
+        # 添加恢复备份按钮
+        self.restore_btn = ttk.Button(self.rules_btn_frame, text="恢复备份", command=self.restore_backup)
+        self.restore_btn.pack(side=tk.LEFT, padx=5)
+        
         # 操作按钮区域
         self.button_frame = ttk.Frame(self.main_frame)
         self.button_frame.pack(fill=tk.X, pady=10)
@@ -222,6 +245,10 @@ class NovelExtractor:
         self.preview_btn_frame = ttk.Frame(self.preview_frame)
         self.preview_btn_frame.pack(fill=tk.X, pady=5)
         
+        # 添加显示设置按钮
+        self.display_settings_btn = ttk.Button(self.preview_btn_frame, text="显示设置", command=self.show_display_settings)
+        self.display_settings_btn.pack(side=tk.LEFT, padx=5)
+        
         # 添加查找替换按钮
         self.search_btn = ttk.Button(self.preview_btn_frame, text="查找替换", command=self.show_search_replace)
         self.search_btn.pack(side=tk.LEFT, padx=5)
@@ -237,6 +264,14 @@ class NovelExtractor:
         # 添加更新目录按钮
         self.update_toc_btn = ttk.Button(self.preview_btn_frame, text="更新目录", command=self.update_chapter_toc)
         self.update_toc_btn.pack(side=tk.LEFT, padx=5)
+        
+        # 添加向上翻页按钮
+        self.page_up_btn = ttk.Button(self.preview_btn_frame, text="向上翻页", command=self.page_up)
+        self.page_up_btn.pack(side=tk.LEFT, padx=5)
+        
+        # 添加向下翻页按钮
+        self.page_down_btn = ttk.Button(self.preview_btn_frame, text="向下翻页", command=self.page_down)
+        self.page_down_btn.pack(side=tk.LEFT, padx=5)
         
         # 创建主预览区域框架
         self.preview_content_frame = ttk.Frame(self.preview_frame)
@@ -287,12 +322,41 @@ class NovelExtractor:
         self.extracted_files = {}
         self.is_running = False
         self.stop_flag = False
+        self.display_settings = None  # 初始化显示设置对象
         
         # 为所有文本控件启用复制粘贴功能
         for widget in [self.start_url, self.end_url, self.catalog_url, self.output_path, 
                        self.batch_url_text, self.preview_text, self.log_text]:
             if isinstance(widget, tk.Text) or isinstance(widget, tk.Entry) or isinstance(widget, ttk.Entry):
                 widget.bind("<Button-3>", self.show_context_menu)
+                
+    def show_display_settings(self):
+        """显示设置对话框"""
+        # 如果显示设置对象未初始化，则创建一个新的实例
+        if self.display_settings is None:
+            from display_settings import DisplaySettings
+            self.display_settings = DisplaySettings(self.root, self.preview_text, apply_callback=self.apply_display_settings)
+        
+        # 显示设置对话框
+        self.display_settings.show_settings_dialog()
+        
+    def apply_display_settings(self):
+        """应用显示设置的回调函数"""
+        # 应用页边距设置
+        if self.display_settings and hasattr(self.display_settings, 'current_settings'):
+            margin = self.display_settings.current_settings.get("page_margin", 10)
+            self.preview_text.config(padx=margin)
+            
+    def page_up(self):
+        """向上翻页"""
+        # 使用内置的yview方法向上滚动一页
+        self.preview_text.yview_scroll(-1, "pages")
+        
+    def page_down(self):
+        """向下翻页"""
+        # 使用内置的yview方法向下滚动一页
+        self.preview_text.yview_scroll(1, "pages")
+        
     
     def create_context_menu(self):
         """创建右键菜单"""
@@ -388,8 +452,15 @@ class NovelExtractor:
                             content = f.read()
                         self.preview_text.insert(tk.END, content)
                         self.log(f"已加载预览文件: {filepath}")
+                    
+                    # 确保每次加载新文件后都应用显示设置
+                    if self.display_settings is None:
+                        from display_settings import DisplaySettings
+                        self.display_settings = DisplaySettings(self.root, self.preview_text, apply_callback=self.apply_display_settings)
+                    self.display_settings.apply_settings_to_preview()
+                    self.apply_display_settings()
                         
-                        # 不再自动提取章节目录，只在用户点击更新目录按钮时更新
+                    # 不再自动提取章节目录，只在用户点击更新目录按钮时更新
                 except Exception as e:
                     self.log(f"加载预览文件时出错: {str(e)}")
                     messagebox.showerror("错误", f"加载预览文件时出错: {str(e)}")
@@ -610,7 +681,7 @@ class NovelExtractor:
             start_url = self.start_url.get().strip()
             end_url = self.end_url.get().strip()
             if not start_url or not end_url:
-                messagebox.showerror("错误", "请输入开始和结束网址！")
+                messagebox.showerror("错误", "请输入有效网址！")
                 return
         elif mode == "catalog":
             # 目录模式下验证输入
@@ -842,6 +913,14 @@ class NovelExtractor:
         # 重置停止标志
         self.stop_flag = False
         
+        # 获取输出文件路径
+        output_path = self.output_path.get().strip()
+        
+        # 如果文件已存在且备份次数大于0，则创建备份
+        backup_count = self.backup_count_var.get()
+        if backup_count > 0 and os.path.exists(output_path):
+            self.backup_file(output_path)
+        
         # 获取输入
         output_path = self.output_path.get().strip()
         thread_count = self.thread_count_var.get()
@@ -860,7 +939,7 @@ class NovelExtractor:
             start_url = self.start_url.get().strip()
             end_url = self.end_url.get().strip()
             if not start_url or not end_url:
-                messagebox.showerror("错误", "请输入开始和结束网址！")
+                messagebox.showerror("错误", "请输入有效网址！")
                 return
         elif mode == "catalog":
             # 目录模式下验证输入
@@ -1122,8 +1201,8 @@ class NovelExtractor:
             # 清空章节目录数据，确保目录与新文件同步
             self.chapter_positions = []
             
-            # 对于超大文件（>10MB）显示警告
-            if file_size_mb > 10:
+            # 对于超大文件（>20MB）显示警告
+            if file_size_mb > 20:
                 if not messagebox.askyesno("文件过大", 
                                           f"文件大小为 {file_size_mb:.2f} MB，加载可能需要较长时间并可能导致程序暂时无响应。\n\n是否继续加载？"):
                     self.log("用户取消了大文件加载")
@@ -1190,6 +1269,49 @@ class NovelExtractor:
             # 如果有进度窗口，关闭它
             if 'progress_window' in locals() and progress_window.winfo_exists():
                 progress_window.destroy()
+                
+    def load_preview_file(self, filepath):
+        """加载文件到预览窗口"""
+        try:
+            # 检查文件大小
+            file_size = os.path.getsize(filepath)
+            self.log(f"文件大小: {file_size / 1024:.2f} KB")
+            
+            # 清空预览文本
+            self.preview_text.delete("1.0", tk.END)
+            
+            # 如果文件较大，分块读取
+            if file_size > 1024 * 1024:  # 大于1MB
+                self.log("文件较大，分块加载中...")
+                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    chunk_size = 1024 * 100  # 100KB
+                    while True:
+                        chunk = f.read(chunk_size)
+                        if not chunk:
+                            break
+                        self.preview_text.insert(tk.END, chunk)
+                        self.root.update()  # 更新UI，防止界面卡死
+            else:
+                # 小文件直接读取
+                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    self.preview_text.insert(tk.END, content)
+            
+            # 自动应用显示设置
+            if self.display_settings is None:
+                from display_settings import DisplaySettings
+                self.display_settings = DisplaySettings(self.root, self.preview_text, apply_callback=self.apply_display_settings)
+            self.display_settings.apply_settings_to_preview()
+            self.apply_display_settings()
+            
+            # 更新章节目录
+            self.update_chapter_toc()
+            
+            self.log(f"已加载文件: {filepath}")
+            return True
+        except Exception as e:
+            self.log(f"加载文件出错: {str(e)}")
+            return False
     
     def show_search_replace(self):
         """显示查找替换对话框"""
@@ -1543,7 +1665,7 @@ class NovelExtractor:
                     # 比较文件内容和预览内容是否不同（去除可能的尾部换行符差异）
                     if file_content.rstrip() != preview_content.rstrip():
                         # 询问用户是否保存修改
-                        response = messagebox.askyesnocancel("保存修改", "预览内容已被修改，是否保存？")
+                        response = messagebox.askyesnocancel("保存修改", "预览内容已被修改，是否覆盖保存？")
                         
                         if response is None:  # 用户点击取消，不关闭预览
                             return
@@ -1609,8 +1731,12 @@ class NovelExtractor:
                     # 如果文件大于2MB，使用分块加载
                     if file_size > 2:
                         self.load_large_file(output_path)
-                        # 大文件加载完成后提取章节目录
-                        self.extract_chapter_toc()
+                        # 大文件加载完成后应用显示设置
+                        if self.display_settings is None:
+                            from display_settings import DisplaySettings
+                            self.display_settings = DisplaySettings(self.root, self.preview_text, apply_callback=self.apply_display_settings)
+                        self.display_settings.apply_settings_to_preview()
+                        self.apply_display_settings()
                     else:
                         # 小文件直接加载
                         with open(output_path, 'r', encoding='utf-8') as f:
@@ -1618,7 +1744,15 @@ class NovelExtractor:
                         self.preview_text.insert(tk.END, content)
                         self.log(f"已加载预览文件: {output_path}")
                         
-                        # 不再自动提取章节目录，只在用户点击更新目录按钮时更新
+                        # 确保每次加载新文件后都应用显示设置
+                        if self.display_settings is None:
+                            from display_settings import DisplaySettings
+                            self.display_settings = DisplaySettings(self.root, self.preview_text, apply_callback=self.apply_display_settings)
+                        self.display_settings.apply_settings_to_preview()
+                        self.apply_display_settings()
+                    
+                    # 不再自动提取章节目录，只在用户点击更新目录按钮时更新
+                   # self.log("提示：如需查看章节目录，请点击"更新目录"按钮")
                 except Exception as e:
                     self.log(f"加载预览文件时出错: {str(e)}")
                     messagebox.showerror("错误", f"加载预览文件时出错: {str(e)}")
@@ -1629,6 +1763,177 @@ class NovelExtractor:
             # 确保预览文本框获得焦点并滚动到顶部
             self.preview_text.focus_set()
             self.preview_text.see("1.0")
+    
+    def create_backup(self, file_path):
+        """创建文件备份
+        
+        参数:
+            file_path: 需要备份的文件路径
+        """
+        try:
+            # 获取备份次数设置
+            backup_count = self.backup_count_var.get()
+            if backup_count <= 0:
+                return  # 如果备份次数设置为0，不创建备份
+                
+            # 确保文件存在
+            if not os.path.exists(file_path):
+                self.log(f"无法创建备份: 文件 {file_path} 不存在")
+                return
+                
+            # 获取文件名和扩展名
+            file_dir = os.path.dirname(file_path)
+            file_name = os.path.basename(file_path)
+            name, ext = os.path.splitext(file_name)
+            
+            # 创建备份文件名，格式为: 原文件名+当前时间.bak
+            timestamp = time.strftime("%H%M%S")
+            backup_name = f"{name}{timestamp}.bak"
+            backup_path = os.path.join(file_dir, backup_name)
+            
+            # 复制文件创建备份
+            import shutil
+            shutil.copy2(file_path, backup_path)
+            self.log(f"已创建备份: {backup_name}")
+            
+            # 获取当前目录中的所有备份文件
+            backup_files = []
+            for f in os.listdir(file_dir):
+                if f.startswith(name) and f.endswith(".bak"):
+                    backup_path = os.path.join(file_dir, f)
+                    backup_files.append((f, os.path.getmtime(backup_path), backup_path))
+            
+            # 如果备份文件数量超过设置的备份次数，删除最旧的备份
+            if len(backup_files) > backup_count:
+                # 按修改时间排序
+                backup_files.sort(key=lambda x: x[1])
+                # 删除最旧的文件，直到数量符合设置
+                for i in range(len(backup_files) - backup_count):
+                    try:
+                        os.remove(backup_files[i][2])
+                        self.log(f"已删除旧备份: {backup_files[i][0]}")
+                    except Exception as e:
+                        self.log(f"删除旧备份时出错: {str(e)}")
+                        
+        except Exception as e:
+            self.log(f"创建备份时出错: {str(e)}")
+            messagebox.showerror("备份错误", f"创建备份时出错: {str(e)}")
+    
+    def restore_backup(self):
+        """还原备份文件"""
+        try:
+            # 获取当前文件路径
+            current_file = self.output_path.get().strip()
+            if not current_file:
+                messagebox.showerror("错误", "请先设置输出文件路径")
+                return
+                
+            file_dir = os.path.dirname(current_file)
+            file_name = os.path.basename(current_file)
+            name, ext = os.path.splitext(file_name)
+            
+            # 查找所有备份文件
+            backup_files = []
+            for f in os.listdir(file_dir):
+                if f.startswith(name) and f.endswith(".bak"):
+                    backup_path = os.path.join(file_dir, f)
+                    backup_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(backup_path)))
+                    backup_files.append((f, backup_time, backup_path))
+            
+            if not backup_files:
+                messagebox.showinfo("提示", "没有找到可用的备份文件")
+                return
+                
+            # 按修改时间排序，最新的排在前面
+            backup_files.sort(key=lambda x: os.path.getmtime(x[2]), reverse=True)
+            
+            # 创建备份选择对话框
+            backup_window = tk.Toplevel(self.root)
+            backup_window.title("选择要还原的备份")
+            backup_window.geometry("500x300")
+            backup_window.transient(self.root)  # 设置为主窗口的子窗口
+            backup_window.grab_set()  # 模态对话框
+            
+            ttk.Label(backup_window, text="请选择要还原的备份文件:").pack(pady=10)
+            
+            # 创建列表框显示备份文件
+            backup_frame = ttk.Frame(backup_window)
+            backup_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+            
+            columns = ("备份文件", "备份时间")
+            backup_tree = ttk.Treeview(backup_frame, columns=columns, show="headings")
+            for col in columns:
+                backup_tree.heading(col, text=col)
+                backup_tree.column(col, width=200)
+            
+            # 添加滚动条
+            scrollbar = ttk.Scrollbar(backup_frame, orient=tk.VERTICAL, command=backup_tree.yview)
+            backup_tree.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            backup_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            
+            # 添加备份文件到列表
+            for i, (file, time_str, _) in enumerate(backup_files):
+                backup_tree.insert("", tk.END, values=(file, time_str))
+            
+            # 如果有备份文件，默认选中第一个（最新的）
+            if backup_files:
+                backup_tree.selection_set(backup_tree.get_children()[0])
+            
+            # 添加按钮框架
+            btn_frame = ttk.Frame(backup_window)
+            btn_frame.pack(fill=tk.X, pady=10)
+            
+            # 定义还原操作
+            def do_restore():
+                selected_items = backup_tree.selection()
+                if not selected_items:
+                    messagebox.showwarning("警告", "请选择一个备份文件")
+                    return
+                    
+                selected_idx = backup_tree.index(selected_items[0])
+                selected_backup = backup_files[selected_idx]
+                
+                # 确认还原
+                if messagebox.askyesno("确认还原", f"确定要还原备份文件 {selected_backup[0]} 吗？\n这将覆盖当前文件 {file_name}"):
+                    try:
+                        # 如果当前文件存在且备份次数大于0，先创建当前文件的备份
+                        if os.path.exists(current_file) and self.backup_count_var.get() > 0:
+                            self.create_backup(current_file)
+                            
+                        # 复制备份文件到当前文件
+                        import shutil
+                        shutil.copy2(selected_backup[2], current_file)
+                        self.log(f"已还原备份: {selected_backup[0]} 到 {file_name}")
+                        messagebox.showinfo("还原成功", f"已成功还原备份文件 {selected_backup[0]}")
+                        
+                        # 如果预览窗口已打开，更新预览内容
+                        if self.preview_var.get():
+                            try:
+                                with open(current_file, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                                self.preview_text.delete(1.0, tk.END)
+                                self.preview_text.insert(tk.END, content)
+                                self.log("已更新预览内容")
+                            except Exception as e:
+                                self.log(f"更新预览内容时出错: {str(e)}")
+                        
+                        # 关闭备份选择窗口
+                        backup_window.destroy()
+                    except Exception as e:
+                        self.log(f"还原备份时出错: {str(e)}")
+                        messagebox.showerror("还原错误", f"还原备份时出错: {str(e)}")
+            
+            # 添加还原和取消按钮
+            ttk.Button(btn_frame, text="还原", command=do_restore).pack(side=tk.LEFT, padx=10)
+            ttk.Button(btn_frame, text="取消", command=backup_window.destroy).pack(side=tk.RIGHT, padx=10)
+            
+            # 双击列表项也可以还原
+            backup_tree.bind("<Double-1>", lambda e: do_restore())
+            
+        except Exception as e:
+            self.log(f"打开备份选择窗口时出错: {str(e)}")
+            messagebox.showerror("错误", f"打开备份选择窗口时出错: {str(e)}")
     
     def apply_rules_to_file(self):
         """对已有文件应用自定义规则"""
@@ -1659,6 +1964,10 @@ class NovelExtractor:
             self.output_path.insert(0, output_file)
         else:
             output_file = output_path
+            # 如果覆盖保存并且备份次数大于0，则创建备份
+            backup_count = self.backup_count_var.get()
+            if backup_count > 0 and os.path.exists(output_file):
+                self.backup_file(output_file)
         
         # 确保输出目录存在
         output_dir = os.path.dirname(output_file)
@@ -1691,17 +2000,32 @@ class NovelExtractor:
         monitor_thread.start()
     
     def stop_extraction(self):
-        """停止正在进行的提取或处理"""
-        if not self.is_running:
-            messagebox.showinfo("提示", "当前没有正在运行的提取任务！")
-            return
+        """停止程序并重新启动"""
+        if messagebox.askyesno("确认", "确定要结束程序并重新启动吗？"):
+            self.log("正在重启程序...")
+            # 如果有正在运行的任务，先停止它
+            if self.is_running:
+                self.stop_flag = True
+                self.is_running = False
+                self.log("正在停止当前任务...")
             
-        self.stop_flag = True
-        self.is_running = False  # 立即设置运行状态为False
-        self.log("正在停止处理...")
-        
-        # 恢复按钮状态
-        self.extract_btn.config(state=tk.NORMAL)
+            # 获取当前程序路径
+            import sys
+            program_path = sys.executable
+            script_path = sys.argv[0]
+            
+            # 使用subprocess启动新进程
+            import subprocess
+            subprocess.Popen([program_path, script_path])
+            
+            # 关闭当前程序
+            self.root.destroy()
+        else:
+            self.log("取消重启")
+            
+        # 恢复按钮状态（如果没有重启）
+        if self.is_running:
+            self.extract_btn.config(state=tk.NORMAL)
         self.extract_with_rules_btn.config(state=tk.NORMAL)
         self.apply_rules_btn.config(state=tk.NORMAL)
         
@@ -1717,6 +2041,15 @@ class NovelExtractor:
                     try:
                         # 设置线程的异常状态，使其在下一次检查时退出
                         _thread.interrupt_main()
+                    except:
+                        pass
+            
+            # 终止所有非守护线程
+            for thread in threading.enumerate():
+                if thread != threading.current_thread() and not thread.daemon:
+                    try:
+                        # 尝试终止线程
+                        thread._stop()
                     except:
                         pass
             
@@ -1746,6 +2079,393 @@ class NovelExtractor:
             self.extract_btn.config(state=tk.NORMAL)
             self.extract_with_rules_btn.config(state=tk.NORMAL)
             self.apply_rules_btn.config(state=tk.NORMAL)
+    
+    def create_backup(self, file_path):
+        """创建文件备份
+        
+        Args:
+            file_path: 要备份的文件路径
+        """
+        try:
+            if not os.path.exists(file_path):
+                self.log(f"文件 {file_path} 不存在，无法创建备份")
+                return
+            
+            # 获取文件目录和文件名
+            file_dir = os.path.dirname(file_path)
+            file_name = os.path.basename(file_path)
+            file_name_without_ext, file_ext = os.path.splitext(file_name)
+            
+            # 创建备份文件名，格式为：原文件名+当前时间.bak
+            current_time = time.strftime("%H%M%S")
+            backup_file_name = f"{file_name_without_ext}{current_time}.bak"
+            backup_file_path = os.path.join(file_dir, backup_file_name)
+            
+            # 复制文件创建备份
+            import shutil
+            shutil.copy2(file_path, backup_file_path)
+            
+            self.log(f"已创建备份: {backup_file_name}")
+            
+            # 管理备份文件数量
+            self.manage_backup_files(file_dir, file_name_without_ext)
+            
+        except Exception as e:
+            self.log(f"创建备份时出错: {str(e)}")
+    
+    def manage_backup_files(self, directory, file_prefix):
+        """管理备份文件数量，删除超过设定数量的最早备份文件
+        
+        Args:
+            directory: 备份文件所在目录
+            file_prefix: 备份文件前缀（原文件名）
+        """
+        try:
+            # 获取备份次数设置
+            backup_count = self.backup_count_var.get()
+            if backup_count <= 0:
+                return
+            
+            # 查找所有匹配的备份文件
+            backup_files = []
+            for file in os.listdir(directory):
+                if file.startswith(file_prefix) and file.endswith(".bak"):
+                    file_path = os.path.join(directory, file)
+                    # 获取文件修改时间
+                    mod_time = os.path.getmtime(file_path)
+                    backup_files.append((file_path, mod_time))
+            
+            # 按修改时间排序（最早的在前）
+            backup_files.sort(key=lambda x: x[1])
+            
+            # 如果备份文件数量超过设定值，删除最早的文件
+            files_to_delete = len(backup_files) - backup_count
+            if files_to_delete > 0:
+                for i in range(files_to_delete):
+                    file_to_delete = backup_files[i][0]
+                    try:
+                        os.remove(file_to_delete)
+                        self.log(f"已删除旧备份: {os.path.basename(file_to_delete)}")
+                    except Exception as e:
+                        self.log(f"删除旧备份时出错: {str(e)}")
+        
+        except Exception as e:
+            self.log(f"管理备份文件时出错: {str(e)}")
+    
+    def backup_file(self, file_path):
+        """备份文件
+        
+        Args:
+            file_path: 需要备份的文件路径
+        
+        Returns:
+            备份文件路径或None（如果备份失败）
+        """
+        try:
+            # 检查备份次数设置
+            backup_count = self.backup_count_var.get()
+            if backup_count <= 0:
+                self.log("备份次数设置为0，跳过备份")
+                return None
+                
+            # 检查文件是否存在
+            if not os.path.exists(file_path):
+                self.log(f"文件不存在，无法备份: {file_path}")
+                return None
+                
+            # 创建备份文件名（原文件名+当前时间）
+            file_dir = os.path.dirname(file_path)
+            file_name = os.path.basename(file_path)
+            file_name_without_ext, file_ext = os.path.splitext(file_name)
+            
+            # 使用当前时间创建备份文件名
+            current_time = time.strftime("%H%M%S")
+            backup_file_name = f"{file_name_without_ext}{current_time}.bak"
+            backup_file_path = os.path.join(file_dir, backup_file_name)
+            
+            # 复制文件
+            import shutil
+            shutil.copy2(file_path, backup_file_path)
+            self.log(f"已创建备份: {backup_file_name}")
+            
+            # 管理备份文件数量
+            self.manage_backup_files(file_path)
+            
+            return backup_file_path
+            
+        except Exception as e:
+            self.log(f"备份文件时出错: {str(e)}")
+            return None
+            
+    def manage_backup_files(self, original_file_path):
+        """管理备份文件数量，删除多余的旧备份"""
+        try:
+            backup_count = self.backup_count_var.get()
+            if backup_count <= 0:
+                return
+                
+            # 获取文件目录和文件名
+            file_dir = os.path.dirname(original_file_path)
+            file_name = os.path.basename(original_file_path)
+            file_name_without_ext, file_ext = os.path.splitext(file_name)
+            
+            # 查找所有匹配的备份文件
+            backup_files = []
+            for file in os.listdir(file_dir):
+                if file.startswith(file_name_without_ext) and file.endswith(".bak"):
+                    full_path = os.path.join(file_dir, file)
+                    # 获取文件修改时间
+                    mod_time = os.path.getmtime(full_path)
+                    backup_files.append((full_path, mod_time))
+            
+            # 按修改时间排序（最旧的在前面）
+            backup_files.sort(key=lambda x: x[1])
+            
+            # 如果备份文件数量超过设置的备份次数，删除多余的旧备份
+            files_to_delete = max(0, len(backup_files) - backup_count)
+            if files_to_delete > 0:
+                for i in range(files_to_delete):
+                    file_to_delete = backup_files[i][0]
+                    try:
+                        os.remove(file_to_delete)
+                        self.log(f"已删除旧备份: {os.path.basename(file_to_delete)}")
+                    except Exception as e:
+                        self.log(f"删除旧备份时出错: {str(e)}")
+        
+        except Exception as e:
+            self.log(f"管理备份文件时出错: {str(e)}")
+    
+    def restore_backup(self):
+        """还原备份文件"""
+        try:
+            # 获取当前输出文件路径
+            current_file = self.output_path.get().strip()
+            if not current_file:
+                messagebox.showerror("错误", "请先设置输出文件路径！")
+                return
+            
+            # 获取文件目录和文件名
+            file_dir = os.path.dirname(current_file)
+            file_name = os.path.basename(current_file)
+            file_name_without_ext, file_ext = os.path.splitext(file_name)
+            
+            # 查找所有匹配的备份文件
+            backup_files = []
+            for file in os.listdir(file_dir):
+                if file.startswith(file_name_without_ext) and file.endswith(".bak"):
+                    full_path = os.path.join(file_dir, file)
+                    # 获取文件修改时间
+                    mod_time = os.path.getmtime(full_path)
+                    # 格式化时间为可读格式
+                    time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mod_time))
+                    backup_files.append((full_path, mod_time, time_str, file))
+            
+            if not backup_files:
+                messagebox.showinfo("提示", "没有找到可用的备份文件！")
+                return
+                
+            # 按修改时间排序（最新的在前面）
+            backup_files.sort(key=lambda x: x[1], reverse=True)
+            
+            # 创建备份选择窗口
+            backup_window = tk.Toplevel(self.root)
+            backup_window.title("选择要还原的备份")
+            backup_window.geometry("500x300")
+            backup_window.transient(self.root)  # 设置为主窗口的子窗口
+            backup_window.grab_set()  # 模态对话框
+            
+            # 添加说明标签
+            ttk.Label(backup_window, text="请选择要还原的备份文件：").pack(pady=10)
+            
+            # 创建列表框架
+            list_frame = ttk.Frame(backup_window)
+            list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+            
+            # 创建带滚动条的列表框
+            scrollbar = ttk.Scrollbar(list_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            backup_listbox = tk.Listbox(list_frame, yscrollcommand=scrollbar.set, font=("SimSun", 10))
+            backup_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.config(command=backup_listbox.yview)
+            
+            # 填充列表
+            for i, (path, mod_time, time_str, file_name) in enumerate(backup_files):
+                backup_listbox.insert(tk.END, f"{file_name} - {time_str}")
+            
+            # 选择第一项
+            if backup_listbox.size() > 0:
+                backup_listbox.selection_set(0)
+            
+            # 按钮框架
+            button_frame = ttk.Frame(backup_window)
+            button_frame.pack(fill=tk.X, pady=10)
+            
+            # 定义还原操作
+            def do_restore():
+                selected_idx = backup_listbox.curselection()
+                if not selected_idx:
+                    messagebox.showwarning("警告", "请选择一个备份文件！")
+                    return
+                    
+                selected_backup = backup_files[selected_idx[0]]
+                backup_path = selected_backup[0]
+                
+                # 确认还原
+                if not messagebox.askyesno("确认", f"确定要还原到备份 {selected_backup[3]} 吗？\n这将覆盖当前文件！"):
+                    return
+                    
+                try:
+                    # 复制备份文件到原文件
+                    import shutil
+                    shutil.copy2(backup_path, current_file)
+                    self.log(f"已还原备份: {selected_backup[3]}")
+                    messagebox.showinfo("成功", "备份还原成功！")
+                    
+                    # 如果预览窗口已打开，更新预览内容
+                    if self.preview_var.get():
+                        self.preview_text.delete(1.0, tk.END)
+                        try:
+                            with open(current_file, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            self.preview_text.insert(tk.END, content)
+                            self.log("已更新预览内容")
+                        except Exception as e:
+                            self.log(f"更新预览内容时出错: {str(e)}")
+                    
+                    # 关闭窗口
+                    backup_window.destroy()
+                    
+                except Exception as e:
+                    self.log(f"还原备份时出错: {str(e)}")
+                    messagebox.showerror("错误", f"还原备份时出错: {str(e)}")
+            
+            # 添加按钮
+            ttk.Button(button_frame, text="还原", command=do_restore).pack(side=tk.LEFT, padx=10)
+            ttk.Button(button_frame, text="取消", command=backup_window.destroy).pack(side=tk.LEFT, padx=10)
+            
+        except Exception as e:
+            self.log(f"还原备份时出错: {str(e)}")
+            messagebox.showerror("错误", f"还原备份时出错: {str(e)}")
+            for file in os.listdir(file_dir):
+                if file.startswith(file_name_without_ext) and file.endswith(".bak"):
+                    backup_files.append(file)
+            
+            if not backup_files:
+                messagebox.showinfo("提示", "没有找到可用的备份文件！")
+                return
+            
+            # 按修改时间排序（最新的在前）
+            backup_files.sort(key=lambda x: os.path.getmtime(os.path.join(file_dir, x)), reverse=True)
+            
+            # 创建还原对话框
+            restore_window = tk.Toplevel(self.root)
+            restore_window.title("还原备份")
+            restore_window.geometry("500x300")
+            restore_window.transient(self.root)  # 设置为主窗口的子窗口
+            restore_window.grab_set()  # 模态对话框
+            
+            # 创建主框架
+            main_frame = ttk.Frame(restore_window, padding="10")
+            main_frame.pack(fill=tk.BOTH, expand=True)
+            
+            ttk.Label(main_frame, text="请选择要还原的备份文件:").pack(anchor=tk.W, pady=5)
+            
+            # 创建列表框架
+            list_frame = ttk.Frame(main_frame)
+            list_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+            
+            # 创建备份文件列表
+            backup_listbox = tk.Listbox(list_frame, width=50, height=10)
+            backup_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            
+            # 添加滚动条
+            scrollbar = ttk.Scrollbar(list_frame, command=backup_listbox.yview)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            backup_listbox.config(yscrollcommand=scrollbar.set)
+            
+            # 填充备份文件列表
+            for file in backup_files:
+                file_path = os.path.join(file_dir, file)
+                # 获取文件修改时间
+                mod_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(file_path)))
+                # 获取文件大小
+                file_size = os.path.getsize(file_path) / 1024  # KB
+                backup_listbox.insert(tk.END, f"{file} - {mod_time} - {file_size:.2f} KB")
+            
+            # 选中第一项
+            if backup_files:
+                backup_listbox.selection_set(0)
+            
+            # 添加按钮框架
+            button_frame = ttk.Frame(main_frame)
+            button_frame.pack(fill=tk.X, pady=10)
+            
+            # 还原函数
+            def do_restore():
+                selected_idx = backup_listbox.curselection()
+                if not selected_idx:
+                    messagebox.showwarning("警告", "请选择一个备份文件！")
+                    return
+                
+                selected_file = backup_files[selected_idx[0]]
+                backup_path = os.path.join(file_dir, selected_file)
+                
+                # 确认还原
+                if not messagebox.askyesno("确认", f"确定要还原备份文件 {selected_file} 吗？\n这将覆盖当前文件 {file_name}！"):
+                    return
+                
+                try:
+                    # 如果当前文件存在且备份次数大于0，则先备份当前文件
+                    if os.path.exists(current_file) and self.backup_count_var.get() > 0:
+                        self.create_backup(current_file)
+                    
+                    # 复制备份文件到当前文件
+                    import shutil
+                    shutil.copy2(backup_path, current_file)
+                    
+                    self.log(f"已还原备份: {selected_file} 到 {file_name}")
+                    messagebox.showinfo("完成", "备份还原成功！")
+                    
+                    # 如果预览窗口已打开，更新预览内容
+                    if self.preview_var.get() and os.path.exists(current_file):
+                        try:
+                            # 获取文件大小
+                            file_size = os.path.getsize(current_file) / (1024 * 1024)  # 转换为MB
+                            
+                            # 清空预览文本框
+                            self.preview_text.delete(1.0, tk.END)
+                            
+                            # 如果文件大于2MB，使用分块加载
+                            if file_size > 2:
+                                self.load_large_file(current_file)
+                            else:
+                                # 小文件直接加载
+                                with open(current_file, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                                self.preview_text.insert(tk.END, content)
+                        except Exception as e:
+                            self.log(f"更新预览内容时出错: {str(e)}")
+                    
+                    # 关闭对话框
+                    restore_window.destroy()
+                    
+                except Exception as e:
+                    self.log(f"还原备份时出错: {str(e)}")
+                    messagebox.showerror("错误", f"还原备份时出错: {str(e)}")
+            
+            # 添加还原按钮
+            restore_btn = ttk.Button(button_frame, text="还原", command=do_restore)
+            restore_btn.pack(side=tk.LEFT, padx=5)
+            
+            # 添加取消按钮
+            cancel_btn = ttk.Button(button_frame, text="取消", command=restore_window.destroy)
+            cancel_btn.pack(side=tk.LEFT, padx=5)
+            
+        except Exception as e:
+            self.log(f"打开还原对话框时出错: {str(e)}")
+            messagebox.showerror("错误", f"打开还原对话框时出错: {str(e)}")
+
     
     def extract_content(self, start_url, end_url, output_dir, output_filename, thread_count, delete_temp, apply_rules=False):
         """提取网页内容并合并
@@ -1973,6 +2693,13 @@ class NovelExtractor:
                             content = f.read()
                         self.preview_text.insert(tk.END, content)
                         # 不再自动提取章节目录，只在用户点击更新目录按钮时更新
+                    
+                    # 确保每次加载新文件后都应用显示设置
+                    if self.display_settings is None:
+                        from display_settings import DisplaySettings
+                        self.display_settings = DisplaySettings(self.root, self.preview_text, apply_callback=self.apply_display_settings)
+                    self.display_settings.apply_settings_to_preview()
+                    self.apply_display_settings()
                 except Exception as e:
                     self.log(f"更新预览内容时出错: {str(e)}")
             
@@ -2271,6 +2998,37 @@ class NovelExtractor:
                     count = old_content.count(search_text)
                     if count > 0:
                         self.log(f"- 将'{search_text}'替换为'{replace_text}'，共替换 {count} 处")
+        
+        # 如果选中了段落缩进选项
+        if hasattr(self, 'paragraph_indent_var') and self.paragraph_indent_var.get():
+            # 为每个段落添加缩进
+            lines = content.split('\n')
+            processed_lines = []
+            indent_count = 0
+            
+            for line in lines:
+                # 跳过空行
+                if not line.strip():
+                    processed_lines.append(line)
+                    continue
+                
+                # 判断是否是章节标题
+                is_title = ((("第" in line and ("章" in line or "节" in line)) or 
+                           any(line.startswith(prefix) for prefix in ["第", "序", "前言", "后记", "附录"])) and 
+                           len(line) <= 20)
+                
+                if is_title:
+                    processed_lines.append(line)
+                else:
+                    # 如果行不是以空格开头，添加两个全角空格作为缩进
+                    if not line.startswith(' ') and not line.startswith('　'):
+                        line = '　　' + line
+                        indent_count += 1
+                    processed_lines.append(line)
+            
+            content = '\n'.join(processed_lines)
+            if indent_count > 0:
+                self.log(f"- 为 {indent_count} 个段落添加了缩进")
         
         # 如果选中了删除行末数字选项
         if hasattr(self, 'remove_end_numbers_var') and self.remove_end_numbers_var.get():
